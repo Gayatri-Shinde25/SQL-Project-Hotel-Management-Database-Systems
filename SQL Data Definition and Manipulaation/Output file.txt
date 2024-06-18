@@ -1,0 +1,1598 @@
+
+SQL> 
+SQL> -- 1. Create the database for Continental Palms Hotel(CPH) in Oracle.
+SQL> -- drop existing tables
+SQL> DROP TABLE RoomType 		CASCADE CONSTRAINTS PURGE;
+
+Table ROOMTYPE dropped.
+
+SQL> DROP TABLE RoomTypeAmenity 	CASCADE CONSTRAINTS PURGE;
+
+Table ROOMTYPEAMENITY dropped.
+
+SQL> DROP TABLE RoomPrice 		CASCADE CONSTRAINTS PURGE;
+
+Table ROOMPRICE dropped.
+
+SQL> DROP TABLE Room 		CASCADE CONSTRAINTS PURGE;
+
+Table ROOM dropped.
+
+SQL> DROP TABLE RoomAmenity 		CASCADE CONSTRAINTS PURGE;
+
+Table ROOMAMENITY dropped.
+
+SQL> DROP TABLE Department 		CASCADE CONSTRAINTS PURGE;
+
+Table DEPARTMENT dropped.
+
+SQL> DROP TABLE Employee 		CASCADE CONSTRAINTS PURGE;
+
+Table EMPLOYEE dropped.
+
+SQL> DROP TABLE Guest 		CASCADE CONSTRAINTS PURGE;
+
+Table GUEST dropped.
+
+SQL> DROP TABLE Member 		CASCADE CONSTRAINTS PURGE;
+
+Table MEMBER dropped.
+
+SQL> DROP TABLE CreditCard  		CASCADE CONSTRAINTS PURGE;
+
+Table CREDITCARD dropped.
+
+SQL> DROP TABLE GuestCreditCard  	CASCADE CONSTRAINTS PURGE;
+
+Table GUESTCREDITCARD dropped.
+
+SQL> DROP TABLE Visit 		CASCADE CONSTRAINTS PURGE;
+
+Table VISIT dropped.
+
+SQL> DROP TABLE VisitRequest 	CASCADE CONSTRAINTS PURGE;
+
+Table VISITREQUEST dropped.
+
+SQL> DROP TABLE TransactionType 	CASCADE CONSTRAINTS PURGE;
+
+Table TRANSACTIONTYPE dropped.
+
+SQL> DROP TABLE Transaction 		CASCADE CONSTRAINTS PURGE;
+
+Table TRANSACTION dropped.
+
+SQL> 
+SQL> -- create new tables
+SQL> CREATE TABLE RoomType (
+  2  	name		VARCHAR2(15) 	PRIMARY KEY,
+  3  	description	VARCHAR2(30),
+  4  	roomSize	NUMBER(3)	CHECK (roomSize BETWEEN 200 AND 900)
+  5  );
+
+Table ROOMTYPE created.
+
+SQL> 
+SQL> CREATE TABLE RoomTypeAmenity (
+  2  	roomType	VARCHAR2(15) 	REFERENCES RoomType, 
+  3  	amenity		VARCHAR2(100),
+  4  	PRIMARY KEY (roomType, amenity)
+  5  );
+
+Table ROOMTYPEAMENITY created.
+
+SQL> 
+SQL> CREATE TABLE RoomPrice (
+  2  	roomType	VARCHAR2(15) 	REFERENCES RoomType, 
+  3  	pricingDate	DATE,
+  4  	price		NUMBER(6,2)	CHECK (price BETWEEN 50 AND 400),
+  5  	PRIMARY KEY (roomType, pricingDate)
+  6  );
+
+Table ROOMPRICE created.
+
+SQL> 
+SQL> CREATE TABLE Room (
+  2  	no		NUMBER(3) 	PRIMARY KEY,
+  3  	floor		NUMBER(1) 	CHECK (floor BETWEEN 1 AND 5),
+  4  	wing		CHAR(1) 	CHECK (wing IN ('E', 'W', 'C')),
+  5  	roomView	CHAR(1) 	CHECK (roomView IN ('O', 'G', 'C')),
+  6  	roomType	VARCHAR2(15) 	NOT NULL REFERENCES RoomType
+  7  );
+
+Table ROOM created.
+
+SQL> 
+SQL> CREATE TABLE RoomAmenity (
+  2  	room		NUMBER(3) 	REFERENCES Room, 
+  3  	amenity		VARCHAR2(100),
+  4  	PRIMARY KEY (room, amenity)
+  5  );
+
+Table ROOMAMENITY created.
+
+SQL> 
+SQL> CREATE TABLE Department (
+  2  	name		VARCHAR2(20) 	PRIMARY KEY,
+  3  	extension	NUMBER(3)	CHECK (extension BETWEEN 100 AND 999),
+  4  	fax		NUMBER(10),
+  5  	managerNo	NUMBER(3) 	UNIQUE NOT NULL,
+  6  	-- The following foreign key constraint is not enforced to avoid circular referencing.
+  7  	-- FOREIGN KEY (managerNo) REFERENCES Employee,
+  8  	managerExtension NUMBER(3)	CHECK (managerExtension BETWEEN 100 AND 999),
+  9  	managerCellphone NUMBER(10)
+ 10  );
+
+Table DEPARTMENT created.
+
+SQL> 
+SQL> CREATE TABLE Employee (
+  2  	no		NUMBER(3) 	PRIMARY KEY,
+  3  	firstName	VARCHAR2(30)	NOT NULL,
+  4  	lastName	VARCHAR2(30)	NOT NULL,
+  5  	position	VARCHAR2(30),
+  6  	gender		CHAR(1)		CHECK (gender IN ('M', 'F')), 
+  7  	birthdate	DATE,
+  8  	hireDate	DATE,
+  9  	department	VARCHAR2(20)	NOT NULL REFERENCES Department,
+ 10  	supervisor	NUMBER(3)	REFERENCES Employee,
+ 11  	CHECK (MONTHS_BETWEEN(hireDate, birthdate)>18*12)
+ 12  	-- The following table constraint is not enforced yet.
+ 13  	-- Constraint: "The employee supervision relationship is hierarchical up to three levels."
+ 14  );
+
+Table EMPLOYEE created.
+
+SQL> 
+SQL> CREATE TABLE Guest (
+  2  	no		NUMBER(5) 	PRIMARY KEY,
+  3  	firstName	VARCHAR2(10)	NOT NULL,
+  4  	lastName	VARCHAR2(10)	NOT NULL,
+  5  	birthdate	DATE,
+  6  	street		VARCHAR2(20), 
+  7  	city		VARCHAR2(10), 
+  8  	state		CHAR(2), 
+  9  	zip		CHAR(5), 
+ 10  	phone		NUMBER(10)	
+ 11  );
+
+Table GUEST created.
+
+SQL> 
+SQL> CREATE TABLE Member (
+  2  	no		NUMBER(5) 	PRIMARY KEY REFERENCES Guest,
+  3  	memberLevel	CHAR(1)		CHECK (memberLevel IN ('S', 'G', 'P')),
+  4  	totalPoints	NUMBER(10),
+  5  	redeemedPoints	NUMBER(10)
+  6  );
+
+Table MEMBER created.
+
+SQL> 
+SQL> CREATE TABLE CreditCard (
+  2  	no		NUMBER(16) 	PRIMARY KEY,
+  3  	type		VARCHAR2(10)	NOT NULL,
+  4  	expiration	DATE		NOT NULL
+  5  );
+
+Table CREDITCARD created.
+
+SQL> 
+SQL> CREATE TABLE GuestCreditCard (
+  2  	guestNo		NUMBER(5) 	REFERENCES Guest,
+  3  	creditCardNo	NUMBER(16) 	REFERENCES CreditCard,
+  4  	ownership	VARCHAR2(30),
+  5  	PRIMARY KEY (guestNo, ownership)
+  6  );
+
+Table GUESTCREDITCARD created.
+
+SQL> 
+SQL> CREATE TABLE Visit (
+  2  	confirmation	NUMBER(6)	PRIMARY KEY,
+  3  	checkin		DATE		NOT NULL,
+  4  	checkout	DATE		NOT NULL,
+  5  	status		CHAR(1)		NOT NULL CHECK (status IN ('R', 'C', 'I', 'O')),
+  6  	guestNo		NUMBER(5) 	NOT NULL REFERENCES Guest,
+  7  	creditCardNo	NUMBER(16) 	NOT NULL REFERENCES CreditCard,
+  8  	roomType	VARCHAR2(15) 	NOT NULL REFERENCES RoomType, 
+  9  	room		NUMBER(3) 	REFERENCES Room, 
+ 10  	CHECK (checkOut > checkIn),
+ 11  	CHECK ((status IN ('R', 'C')) OR (room IS NOT NULL))
+ 12  	-- The following table constraints are not enforced yet.
+ 13  	-- Constraint:  A guest cannot make multiple visits on any given day. 
+ 14  	-- Constraint:  No room can be assigned to multiple guest visits on the same day. 
+ 15  );
+
+Table VISIT created.
+
+SQL> 
+SQL> CREATE TABLE VisitRequest (
+  2  	confirmation	NUMBER(6)	REFERENCES Visit,
+  3  	request		VARCHAR2(100),
+  4  	PRIMARY KEY (confirmation, request)
+  5  );
+
+Table VISITREQUEST created.
+
+SQL> 
+SQL> CREATE TABLE TransactionType (
+  2  	code		NUMBER(3)	PRIMARY KEY CHECK (code BETWEEN 100 AND 999),
+  3  	description	VARCHAR2(50),
+  4  	direction 	CHAR(1)		NOT NULL CHECK (direction IN ('C', 'D')),
+  5  	enteringMethod 	CHAR(1)		NOT NULL CHECK (enteringMethod IN ('A', 'M'))
+  6  );
+
+Table TRANSACTIONTYPE created.
+
+SQL> 
+SQL> CREATE TABLE Transaction (
+  2  	no		NUMBER(7)	PRIMARY KEY CHECK (no BETWEEN 1000000 AND 9999999),
+  3  	transactionDate	DATE		NOT NULL,
+  4  	amount		NUMBER(7,2)	NOT NULL CHECK (amount > 0),
+  5  	memo		VARCHAR2(100),
+  6  	transactionType	NUMBER(3)	NOT NULL REFERENCES TransactionType,
+  7  	confirmation	NUMBER(6)	NOT NULL REFERENCES Visit,
+  8  	enteringEmployee NUMBER(3) 	REFERENCES Employee,
+  9  	voidingEmployee	NUMBER(3) 	REFERENCES Employee,
+ 10  	voidingDate	DATE,
+ 11  	voidingReason	VARCHAR2(100),
+ 12  	CHECK ((voidingEmployee IS NULL) OR ((voidingDate IS NOT NULL) AND (voidingReason IS NOT NULL)))
+ 13  );
+
+Table TRANSACTION created.
+
+SQL> 
+SQL> -- The following database constraints are not enforced yet.
+SQL> --Constraint:  There is at least one room of every room type. 
+SQL> --Constraint:  There is at least one price for every room type. 
+SQL> --Constraint:  The manager of a department must be an employee in the department. 
+SQL> --Constraint:  The manager of a department does not have a supervisor. 
+SQL> --Constraint:  Every credit card belongs to at least one guest. 
+SQL> --Constraint:  Every guest has at least one credit card. 
+SQL> --Constraint:  The room number of a visit, if there is one, must be consistent with the room type. 
+SQL> --Constraint:  The credit card used for a visit must be one of the credit cards of the guest making the visit. 
+SQL> --Constraint:  The number of reservations for any room type on any day cannot exceed the number of rooms of that room type. 
+SQL> --Constraint:  If a transaction is of a type that is manually entered, the transaction must be entered by an employee. 
+SQL> --Constraint:  The date of a transaction must be between the check-in and check-out dates of the visit associated with the transaction. 
+SQL> --Constraint:  The voiding date of a voided transaction must be between the transaction date and the check-out date of the visit associated with the transaction. 
+SQL> --Constraint:  The transaction balance of every checked-out visit must be zero. 
+SQL> 
+SQL> -- list all tables
+SQL> SELECT * from tab;
+
+TNAME                                                                                                                            TABTYPE        CLUSTERID
+-------------------------------------------------------------------------------------------------------------------------------- ------------- ----------
+BACKUP                                                                                                                           TABLE                   
+BRANCH                                                                                                                           TABLE                   
+CLIENT                                                                                                                           TABLE                   
+CLIENTEMPLOYEE                                                                                                                   TABLE                   
+CLIENTPHONE                                                                                                                      TABLE                   
+CLIENTS_EMPLOYEEPHONE1                                                                                                           TABLE                   
+CONTAINS                                                                                                                         TABLE                   
+CREDITCARD                                                                                                                       TABLE                   
+DEPARTMENT                                                                                                                       TABLE                   
+EMPLOYEE                                                                                                                         TABLE                   
+GUEST                                                                                                                            TABLE                   
+
+TNAME                                                                                                                            TABTYPE        CLUSTERID
+-------------------------------------------------------------------------------------------------------------------------------- ------------- ----------
+GUESTCREDITCARD                                                                                                                  TABLE                   
+MEMBER                                                                                                                           TABLE                   
+OFFICE                                                                                                                           TABLE                   
+PAYMENTS                                                                                                                         TABLE                   
+PRIVATEOWNER                                                                                                                     TABLE                   
+PRODUCT                                                                                                                          TABLE                   
+PROPERTYFORRENT                                                                                                                  TABLE                   
+REGISTRATION                                                                                                                     TABLE                   
+ROOM                                                                                                                             TABLE                   
+ROOMAMENITY                                                                                                                      TABLE                   
+ROOMPRICE                                                                                                                        TABLE                   
+
+TNAME                                                                                                                            TABTYPE        CLUSTERID
+-------------------------------------------------------------------------------------------------------------------------------- ------------- ----------
+ROOMTYPE                                                                                                                         TABLE                   
+ROOMTYPEAMENITY                                                                                                                  TABLE                   
+SALE                                                                                                                             TABLE                   
+SALESPERSON                                                                                                                      TABLE                   
+SALE_ITEM                                                                                                                        TABLE                   
+SELLS                                                                                                                            TABLE                   
+STAFF                                                                                                                            TABLE                   
+STAFF3                                                                                                                           VIEW                    
+STAFF3COPY                                                                                                                       TABLE                   
+STAFF3V3                                                                                                                         VIEW                    
+STAFF3_MATERIALIZED                                                                                                              TABLE                   
+
+TNAME                                                                                                                            TABTYPE        CLUSTERID
+-------------------------------------------------------------------------------------------------------------------------------- ------------- ----------
+STAFF3_V2                                                                                                                        VIEW                    
+STAFFPROPCNT                                                                                                                     VIEW                    
+T                                                                                                                                TABLE                   
+TRANSACTION                                                                                                                      TABLE                   
+TRANSACTIONTYPE                                                                                                                  TABLE                   
+VIEWING                                                                                                                          TABLE                   
+VISIT                                                                                                                            TABLE                   
+VISITREQUEST                                                                                                                     TABLE                   
+
+41 rows selected. 
+
+SQL> 
+SQL> -- describe the structure of tables.
+SQL> DESC RoomType 
+Name        Null?    Type         
+----------- -------- ------------ 
+NAME        NOT NULL VARCHAR2(15) 
+DESCRIPTION          VARCHAR2(30) 
+ROOMSIZE             NUMBER(3)    
+SQL> DESC RoomTypeAmenity 
+Name     Null?    Type          
+-------- -------- ------------- 
+ROOMTYPE NOT NULL VARCHAR2(15)  
+AMENITY  NOT NULL VARCHAR2(100) 
+SQL> DESC RoomPrice 
+Name        Null?    Type         
+----------- -------- ------------ 
+ROOMTYPE    NOT NULL VARCHAR2(15) 
+PRICINGDATE NOT NULL DATE         
+PRICE                NUMBER(6,2)  
+SQL> DESC Room 
+Name     Null?    Type         
+-------- -------- ------------ 
+NO       NOT NULL NUMBER(3)    
+FLOOR             NUMBER(1)    
+WING              CHAR(1)      
+ROOMVIEW          CHAR(1)      
+ROOMTYPE NOT NULL VARCHAR2(15) 
+SQL> DESC RoomAmenity 
+Name    Null?    Type          
+------- -------- ------------- 
+ROOM    NOT NULL NUMBER(3)     
+AMENITY NOT NULL VARCHAR2(100) 
+SQL> DESC Department 
+Name             Null?    Type         
+---------------- -------- ------------ 
+NAME             NOT NULL VARCHAR2(20) 
+EXTENSION                 NUMBER(3)    
+FAX                       NUMBER(10)   
+MANAGERNO        NOT NULL NUMBER(3)    
+MANAGEREXTENSION          NUMBER(3)    
+MANAGERCELLPHONE          NUMBER(10)   
+SQL> DESC Employee 
+Name       Null?    Type         
+---------- -------- ------------ 
+NO         NOT NULL NUMBER(3)    
+FIRSTNAME  NOT NULL VARCHAR2(30) 
+LASTNAME   NOT NULL VARCHAR2(30) 
+POSITION            VARCHAR2(30) 
+GENDER              CHAR(1)      
+BIRTHDATE           DATE         
+HIREDATE            DATE         
+DEPARTMENT NOT NULL VARCHAR2(20) 
+SUPERVISOR          NUMBER(3)    
+SQL> DESC Guest 
+Name      Null?    Type         
+--------- -------- ------------ 
+NO        NOT NULL NUMBER(5)    
+FIRSTNAME NOT NULL VARCHAR2(10) 
+LASTNAME  NOT NULL VARCHAR2(10) 
+BIRTHDATE          DATE         
+STREET             VARCHAR2(20) 
+CITY               VARCHAR2(10) 
+STATE              CHAR(2)      
+ZIP                CHAR(5)      
+PHONE              NUMBER(10)   
+SQL> DESC Member 
+Name           Null?    Type       
+-------------- -------- ---------- 
+NO             NOT NULL NUMBER(5)  
+MEMBERLEVEL             CHAR(1)    
+TOTALPOINTS             NUMBER(10) 
+REDEEMEDPOINTS          NUMBER(10) 
+SQL> DESC CreditCard  
+Name       Null?    Type         
+---------- -------- ------------ 
+NO         NOT NULL NUMBER(16)   
+TYPE       NOT NULL VARCHAR2(10) 
+EXPIRATION NOT NULL DATE         
+SQL> DESC GuestCreditCard  
+Name         Null?    Type         
+------------ -------- ------------ 
+GUESTNO      NOT NULL NUMBER(5)    
+CREDITCARDNO          NUMBER(16)   
+OWNERSHIP    NOT NULL VARCHAR2(30) 
+SQL> DESC Visit 
+Name         Null?    Type         
+------------ -------- ------------ 
+CONFIRMATION NOT NULL NUMBER(6)    
+CHECKIN      NOT NULL DATE         
+CHECKOUT     NOT NULL DATE         
+STATUS       NOT NULL CHAR(1)      
+GUESTNO      NOT NULL NUMBER(5)    
+CREDITCARDNO NOT NULL NUMBER(16)   
+ROOMTYPE     NOT NULL VARCHAR2(15) 
+ROOM                  NUMBER(3)    
+SQL> DESC VisitRequest 
+Name         Null?    Type          
+------------ -------- ------------- 
+CONFIRMATION NOT NULL NUMBER(6)     
+REQUEST      NOT NULL VARCHAR2(100) 
+SQL> DESC TransactionType 
+Name           Null?    Type         
+-------------- -------- ------------ 
+CODE           NOT NULL NUMBER(3)    
+DESCRIPTION             VARCHAR2(50) 
+DIRECTION      NOT NULL CHAR(1)      
+ENTERINGMETHOD NOT NULL CHAR(1)      
+SQL> DESC Transaction 
+Name             Null?    Type          
+---------------- -------- ------------- 
+NO               NOT NULL NUMBER(7)     
+TRANSACTIONDATE  NOT NULL DATE          
+AMOUNT           NOT NULL NUMBER(7,2)   
+MEMO                      VARCHAR2(100) 
+TRANSACTIONTYPE  NOT NULL NUMBER(3)     
+CONFIRMATION     NOT NULL NUMBER(6)     
+ENTERINGEMPLOYEE          NUMBER(3)     
+VOIDINGEMPLOYEE           NUMBER(3)     
+VOIDINGDATE               DATE          
+VOIDINGREASON             VARCHAR2(100) 
+SQL> 
+SQL> -- 2. Enter sample data.
+SQL> INSERT INTO RoomType 
+  2  VALUES (
+  3  'Standard', '2 queen beds', 250
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO RoomType 
+  2  VALUES (
+  3  'Deluxe', '1 king or 2 queen beds', 350
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO RoomType 
+  2  VALUES (
+  3  'Luxury Suite', '2 king beds, 1 crib', 700
+  4  );
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Room
+  2  VALUES (
+  3  201, 2, 'E', 'O', 'Standard'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Room
+  2  VALUES (
+  3  202, 2, 'E', 'G', 'Standard'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Room
+  2  VALUES (
+  3  221, 2, 'C', 'C', 'Deluxe'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Room
+  2  VALUES (
+  3  222, 2, 'C', 'C', 'Deluxe'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Room
+  2  VALUES (
+  3  241, 2, 'W', 'O', 'Luxury Suite'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Room
+  2  VALUES (
+  3  243, 2, 'W', 'O', 'Luxury Suite'
+  4  );
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10001, 'Anette', 'Larreau', '25-JAN-1952', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10002, 'Michel', 'Dolan', '13-MAY-1962', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10003, 'Brian', 'Wiggins', '3-JUL-1972', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10004, 'Wendell', 'Thomas', '14-FEB-1985', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10005, 'Salena', 'Dimas', '15-MAR-1957', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10006, 'Terri', 'Smith', '18-JUL-1955', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10007, 'Larry', 'Moxly', '15-AUG-1963', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10008, 'Jim', 'Jones', '31-AUG-1958', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10009, 'Chris', 'Bailey', '16-JAN-1994', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10010, 'Romila', 'Sprangler', '5-FEB-1980', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10011, 'Coco', 'Bronson', '30-APR-1974', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10012, 'Rita', 'Freeman', '26-AUG-1967', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10013, 'Anita', 'Grost', '25-NOV-1981', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10014, 'Steven', 'Nickolsen', '8-JUN-1978', 'IL'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10015, 'Joy', 'Yun', '18-MAY-1952', 'IL'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10016, 'Joanne', 'Danger', '24-JAN-1972', 'WI'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10017, 'Rachel', 'Hamilton', '15-MAY-1954', 'IL'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Guest (no, firstName, lastName, birthdate, state)
+  2  VALUES (
+  3  10018, 'Nathanael', 'Tyre', '7-JUL-1982', 'IL'
+  4  );
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10001, 'S', 5000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10002, 'S', 9000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10003, 'G', 5000, 1000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10004, 'P', 7000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10005, 'P', 4000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10007, 'S', 5000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10008, 'G', 8000, 3000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10009, 'S', 5000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10011, 'P', 7000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10012, 'S', 5000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10015, 'S', 5000, 5000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10016, 'S', 5000, 2000
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Member
+  2  VALUES (
+  3  10018, 'P', 4000, 1000
+  4  );
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435671626, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435672345, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435672342, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435675244, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435672322, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435674564, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435679238, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435677324, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  7832465435675626, 'Visa', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435671626, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435672345, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435672342, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435675244, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435672322, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435674564, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435679238, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435677324, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO CreditCard
+  2  VALUES (
+  3  3454465435675626, 'Master', '7-JUL-2029'
+  4  );
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100001, '7-MAR-2023', '17-MAR-2023', 'O', 10001, 7832465435671626, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100002, '1-OCT-2023', '7-OCT-2023', 'C', 10001, 7832465435671626, 'Standard', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100003, '7-DEC-2023', '17-DEC-2023', 'O', 10001, 7832465435671626, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100004, '10-DEC-2024', '15-DEC-2024', 'R', 10001, 7832465435671626, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100005, '10-JAN-2023', '12-JAN-2023', 'O', 10003, 7832465435672342, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100006, '12-DEC-2023', '14-DEC-2023', 'O', 10004, 7832465435675244, 'Luxury Suite', 241
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100007, '7-DEC-2023', '17-DEC-2023', 'O', 10005, 7832465435672322, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100008, '1-OCT-2024', '15-OCT-2024', 'R', 10005, 7832465435672322, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100009, '10-DEC-2024', '15-DEC-2024', 'C', 10007, 7832465435679238, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100010, '7-FEB-2023', '17-FEB-2023', 'O', 10008, 7832465435677324, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100011, '1-OCT-2023', '7-OCT-2023', 'C', 10008, 7832465435677324, 'Standard', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100012, '7-MAR-2023', '12-MAR-2023', 'O', 10008, 7832465435677324, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100013, '1-DEC-2024', '5-DEC-2024', 'C', 10008, 7832465435677324, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100014, '17-MAR-2023', '19-MAR-2023', 'O', 10009, 7832465435675626, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100015, '17-DEC-2023', '19-DEC-2023', 'O', 10009, 7832465435675626, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100016, '17-DEC-2024', '19-DEC-2024', 'R', 10009, 7832465435675626, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100017, '10-DEC-2023', '15-DEC-2023', 'O', 10010, 7832465435675626, 'Luxury Suite', 243
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100018, '7-MAR-2023', '17-MAR-2023', 'O', 10011, 3454465435671626, 'Standard', 202
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100019, '1-OCT-2023', '7-OCT-2023', 'C', 10011, 3454465435671626, 'Standard', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100020, '7-DEC-2023', '17-DEC-2023', 'O', 10011, 3454465435671626, 'Deluxe', 222
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100021, '19-APR-2023', '21-APR-2023', 'O', 10012, 3454465435671626, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100022, '10-AUG-2024', '15-AUG-2024', 'R', 10012, 3454465435671626, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100023, '12-SEP-2024', '15-SEP-2024', 'R', 10014, 3454465435672342, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100024, '7-SEP-2023', '17-SEP-2023', 'O', 10015, 3454465435675244, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100025, '10-DEC-2023', '15-DEC-2023', 'O', 10015, 3454465435675244, 'Luxury Suite', 241
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100026, '22-MAR-2023', '24-MAR-2023', 'O', 10016, 3454465435672322, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100027, '11-OCT-2023', '17-OCT-2023', 'O', 10016, 3454465435672322, 'Standard', 202
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100028, '17-DEC-2023', '27-DEC-2023', 'O', 10016, 3454465435672322, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100029, '19-DEC-2024', '21-DEC-2024', 'R', 10016, 3454465435672322, 'Luxury Suite', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100030, '2-MAR-2023', '3-MAR-2023', 'O', 10018, 3454465435679238, 'Standard', 201
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100031, '3-OCT-2023', '4-OCT-2023', 'C', 10018, 3454465435679238, 'Standard', null
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100032, '2-DEC-2023', '3-DEC-2023', 'O', 10018, 3454465435679238, 'Deluxe', 221
+  4  );
+
+1 row inserted.
+
+SQL> INSERT INTO Visit 
+  2  VALUES (
+  3  100033, '12-DEC-2023', '15-DEC-2023', 'O', 10018, 3454465435679238, 'Luxury Suite', 243
+  4  );
+
+1 row inserted.
+
+SQL> 
+SQL> -- commit the transaction.
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> 
+SQL> -- display the data
+SQL> SELECT * FROM RoomType;
+
+NAME            DESCRIPTION                      ROOMSIZE
+--------------- ------------------------------ ----------
+Standard        2 queen beds                          250
+Deluxe          1 king or 2 queen beds                350
+Luxury Suite    2 king beds, 1 crib                   700
+
+SQL> SELECT * FROM Room;
+
+        NO      FLOOR W R ROOMTYPE       
+---------- ---------- - - ---------------
+       201          2 E O Standard       
+       202          2 E G Standard       
+       221          2 C C Deluxe         
+       222          2 C C Deluxe         
+       241          2 W O Luxury Suite   
+       243          2 W O Luxury Suite   
+
+6 rows selected. 
+
+SQL> SELECT no, firstName, lastName, birthdate, state FROM Guest;
+
+        NO FIRSTNAME  LASTNAME   BIRTHDATE ST
+---------- ---------- ---------- --------- --
+     10001 Anette     Larreau    25-JAN-52 WI
+     10002 Michel     Dolan      13-MAY-62 WI
+     10003 Brian      Wiggins    03-JUL-72 WI
+     10004 Wendell    Thomas     14-FEB-85 WI
+     10005 Salena     Dimas      15-MAR-57 WI
+     10006 Terri      Smith      18-JUL-55 WI
+     10007 Larry      Moxly      15-AUG-63 WI
+     10008 Jim        Jones      31-AUG-58 WI
+     10009 Chris      Bailey     16-JAN-94 WI
+     10010 Romila     Sprangler  05-FEB-80 WI
+     10011 Coco       Bronson    30-APR-74 WI
+
+        NO FIRSTNAME  LASTNAME   BIRTHDATE ST
+---------- ---------- ---------- --------- --
+     10012 Rita       Freeman    26-AUG-67 WI
+     10013 Anita      Grost      25-NOV-81 WI
+     10014 Steven     Nickolsen  08-JUN-78 IL
+     10015 Joy        Yun        18-MAY-52 IL
+     10016 Joanne     Danger     24-JAN-72 WI
+     10017 Rachel     Hamilton   15-MAY-54 IL
+     10018 Nathanael  Tyre       07-JUL-82 IL
+
+18 rows selected. 
+
+SQL> SELECT * FROM Member;
+
+        NO M TOTALPOINTS REDEEMEDPOINTS
+---------- - ----------- --------------
+     10001 S        5000           2000
+     10002 S        9000           2000
+     10003 G        5000           1000
+     10004 P        7000           2000
+     10005 P        4000           2000
+     10007 S        5000           2000
+     10008 G        8000           3000
+     10009 S        5000           2000
+     10011 P        7000           2000
+     10012 S        5000           2000
+     10015 S        5000           5000
+
+        NO M TOTALPOINTS REDEEMEDPOINTS
+---------- - ----------- --------------
+     10016 S        5000           2000
+     10018 P        4000           1000
+
+13 rows selected. 
+
+SQL> Column no format a16
+SQL> SELECT * FROM CreditCard;
+
+              NO TYPE       EXPIRATIO
+---------------- ---------- ---------
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      7.8325E+15 Visa       07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+
+              NO TYPE       EXPIRATIO
+---------------- ---------- ---------
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+      3.4545E+15 Master     07-JUL-29
+
+18 rows selected. 
+
+SQL> Column creditCardNo format a16
+SQL> SELECT * FROM Visit;
+
+CONFIRMATION CHECKIN   CHECKOUT  S    GUESTNO     CREDITCARDNO ROOMTYPE              ROOM
+------------ --------- --------- - ---------- ---------------- --------------- ----------
+      100001 07-MAR-23 17-MAR-23 O      10001       7.8325E+15 Standard               201
+      100002 01-OCT-23 07-OCT-23 C      10001       7.8325E+15 Standard                  
+      100003 07-DEC-23 17-DEC-23 O      10001       7.8325E+15 Deluxe                 221
+      100004 10-DEC-24 15-DEC-24 R      10001       7.8325E+15 Luxury Suite              
+      100005 10-JAN-23 12-JAN-23 O      10003       7.8325E+15 Standard               201
+      100006 12-DEC-23 14-DEC-23 O      10004       7.8325E+15 Luxury Suite           241
+      100007 07-DEC-23 17-DEC-23 O      10005       7.8325E+15 Deluxe                 221
+      100008 01-OCT-24 15-OCT-24 R      10005       7.8325E+15 Luxury Suite              
+      100009 10-DEC-24 15-DEC-24 C      10007       7.8325E+15 Luxury Suite              
+      100010 07-FEB-23 17-FEB-23 O      10008       7.8325E+15 Standard               201
+      100011 01-OCT-23 07-OCT-23 C      10008       7.8325E+15 Standard                  
+
+CONFIRMATION CHECKIN   CHECKOUT  S    GUESTNO     CREDITCARDNO ROOMTYPE              ROOM
+------------ --------- --------- - ---------- ---------------- --------------- ----------
+      100012 07-MAR-23 12-MAR-23 O      10008       7.8325E+15 Deluxe                 221
+      100013 01-DEC-24 05-DEC-24 C      10008       7.8325E+15 Luxury Suite              
+      100014 17-MAR-23 19-MAR-23 O      10009       7.8325E+15 Standard               201
+      100015 17-DEC-23 19-DEC-23 O      10009       7.8325E+15 Deluxe                 221
+      100016 17-DEC-24 19-DEC-24 R      10009       7.8325E+15 Luxury Suite              
+      100017 10-DEC-23 15-DEC-23 O      10010       7.8325E+15 Luxury Suite           243
+      100018 07-MAR-23 17-MAR-23 O      10011       3.4545E+15 Standard               202
+      100019 01-OCT-23 07-OCT-23 C      10011       3.4545E+15 Standard                  
+      100020 07-DEC-23 17-DEC-23 O      10011       3.4545E+15 Deluxe                 222
+      100021 19-APR-23 21-APR-23 O      10012       3.4545E+15 Standard               201
+      100022 10-AUG-24 15-AUG-24 R      10012       3.4545E+15 Luxury Suite              
+
+CONFIRMATION CHECKIN   CHECKOUT  S    GUESTNO     CREDITCARDNO ROOMTYPE              ROOM
+------------ --------- --------- - ---------- ---------------- --------------- ----------
+      100023 12-SEP-24 15-SEP-24 R      10014       3.4545E+15 Luxury Suite              
+      100024 07-SEP-23 17-SEP-23 O      10015       3.4545E+15 Deluxe                 221
+      100025 10-DEC-23 15-DEC-23 O      10015       3.4545E+15 Luxury Suite           241
+      100026 22-MAR-23 24-MAR-23 O      10016       3.4545E+15 Standard               201
+      100027 11-OCT-23 17-OCT-23 O      10016       3.4545E+15 Standard               202
+      100028 17-DEC-23 27-DEC-23 O      10016       3.4545E+15 Deluxe                 221
+      100029 19-DEC-24 21-DEC-24 R      10016       3.4545E+15 Luxury Suite              
+      100030 02-MAR-23 03-MAR-23 O      10018       3.4545E+15 Standard               201
+      100031 03-OCT-23 04-OCT-23 C      10018       3.4545E+15 Standard                  
+      100032 02-DEC-23 03-DEC-23 O      10018       3.4545E+15 Deluxe                 221
+      100033 12-DEC-23 15-DEC-23 O      10018       3.4545E+15 Luxury Suite           243
+
+33 rows selected. 
+
+SQL> 
+SQL> -- 3. Sample queries
+SQL> -- 3.1 Get the guest number, first name, last name, and birthdate of every guest.
+SQL> 
+SQL> SELECT	no, firstName, lastName, birthDate
+  2  FROM	Guest;
+
+              NO FIRSTNAME  LASTNAME   BIRTHDATE
+---------------- ---------- ---------- ---------
+           10001 Anette     Larreau    25-JAN-52
+           10002 Michel     Dolan      13-MAY-62
+           10003 Brian      Wiggins    03-JUL-72
+           10004 Wendell    Thomas     14-FEB-85
+           10005 Salena     Dimas      15-MAR-57
+           10006 Terri      Smith      18-JUL-55
+           10007 Larry      Moxly      15-AUG-63
+           10008 Jim        Jones      31-AUG-58
+           10009 Chris      Bailey     16-JAN-94
+           10010 Romila     Sprangler  05-FEB-80
+           10011 Coco       Bronson    30-APR-74
+
+              NO FIRSTNAME  LASTNAME   BIRTHDATE
+---------------- ---------- ---------- ---------
+           10012 Rita       Freeman    26-AUG-67
+           10013 Anita      Grost      25-NOV-81
+           10014 Steven     Nickolsen  08-JUN-78
+           10015 Joy        Yun        18-MAY-52
+           10016 Joanne     Danger     24-JAN-72
+           10017 Rachel     Hamilton   15-MAY-54
+           10018 Nathanael  Tyre       07-JUL-82
+
+18 rows selected. 
+
+SQL> 
+SQL> -- 3.2 Get the guest number, name (first name plus last name), and age of every guest from Wisconsin.
+SQL> 
+SQL> SELECT	no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age
+  2  FROM	Guest
+  3  WHERE	state = 'WI';
+
+              NO NAME                         AGE
+---------------- --------------------- ----------
+           10001 Anette Larreau                71
+           10002 Michel Dolan                  61
+           10003 Brian Wiggins                 51
+           10004 Wendell Thomas                38
+           10005 Salena Dimas                  66
+           10006 Terri Smith                   68
+           10007 Larry Moxly                   60
+           10008 Jim Jones                     65
+           10009 Chris Bailey                  29
+           10010 Romila Sprangler              43
+           10011 Coco Bronson                  49
+
+              NO NAME                         AGE
+---------------- --------------------- ----------
+           10012 Rita Freeman                  56
+           10013 Anita Grost                   41
+           10016 Joanne Danger                 51
+
+14 rows selected. 
+
+SQL> 
+SQL> -- 3.3 Get the guest number, name, and age of every member from Wisconsin.
+SQL> 
+SQL> SELECT	g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age
+  2  FROM	Guest g, Member b
+  3  WHERE	g.no = b.no
+  4  	AND state = 'WI';
+
+              NO NAME                         AGE
+---------------- --------------------- ----------
+           10001 Anette Larreau                71
+           10002 Michel Dolan                  61
+           10003 Brian Wiggins                 51
+           10004 Wendell Thomas                38
+           10005 Salena Dimas                  66
+           10007 Larry Moxly                   60
+           10008 Jim Jones                     65
+           10009 Chris Bailey                  29
+           10011 Coco Bronson                  49
+           10012 Rita Freeman                  56
+           10016 Joanne Danger                 51
+
+11 rows selected. 
+
+SQL> 
+SQL> -- 3.4 Get the guest number, name, and age of every member from Wisconsin who has stayed (including reserved visits but excluding canceled visits) in a luxury suite.
+SQL> 
+SQL> SELECT	UNIQUE g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age
+  2  FROM	Guest g, Member b, Visit v
+  3  WHERE	g.no = b.no
+  4  	AND g.no = v.guestNo
+  5  	AND state = 'WI'
+  6  	AND roomType = 'Luxury Suite'
+  7  	AND status <> 'C'
+  8  ORDER BY g.no;
+
+              NO NAME                         AGE
+---------------- --------------------- ----------
+           10001 Anette Larreau                71
+           10004 Wendell Thomas                38
+           10005 Salena Dimas                  66
+           10009 Chris Bailey                  29
+           10012 Rita Freeman                  56
+           10016 Joanne Danger                 51
+
+6 rows selected. 
+
+SQL> 
+SQL> -- 3.5 Get the following about every member from Wisconsin who has stayed in a luxury suite: guest number, name, age, and visits (check in, check out, and room type). Include visits of other room types too.
+SQL> 
+SQL> SELECT	g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age, checkIn, checkOut, roomType
+  2  FROM	Guest g, Visit v
+  3  WHERE	g.no = v.guestNo
+  4  	AND status <> 'C'
+  5  	AND g.no IN
+  6  	(
+  7  	SELECT	g.no
+  8  	FROM	Guest g, Member b, Visit v
+  9  	WHERE	g.no = b.no
+ 10  		AND g.no = v.guestNo
+ 11  		AND state = 'WI'
+ 12  		AND roomType = 'Luxury Suite'
+ 13  		AND status <> 'C'
+ 14  	);
+
+              NO NAME                         AGE CHECKIN   CHECKOUT  ROOMTYPE       
+---------------- --------------------- ---------- --------- --------- ---------------
+           10001 Anette Larreau                71 07-MAR-23 17-MAR-23 Standard       
+           10001 Anette Larreau                71 07-DEC-23 17-DEC-23 Deluxe         
+           10001 Anette Larreau                71 10-DEC-24 15-DEC-24 Luxury Suite   
+           10004 Wendell Thomas                38 12-DEC-23 14-DEC-23 Luxury Suite   
+           10005 Salena Dimas                  66 07-DEC-23 17-DEC-23 Deluxe         
+           10005 Salena Dimas                  66 01-OCT-24 15-OCT-24 Luxury Suite   
+           10009 Chris Bailey                  29 17-MAR-23 19-MAR-23 Standard       
+           10009 Chris Bailey                  29 17-DEC-23 19-DEC-23 Deluxe         
+           10009 Chris Bailey                  29 17-DEC-24 19-DEC-24 Luxury Suite   
+           10012 Rita Freeman                  56 19-APR-23 21-APR-23 Standard       
+           10012 Rita Freeman                  56 10-AUG-24 15-AUG-24 Luxury Suite   
+
+              NO NAME                         AGE CHECKIN   CHECKOUT  ROOMTYPE       
+---------------- --------------------- ---------- --------- --------- ---------------
+           10016 Joanne Danger                 51 22-MAR-23 24-MAR-23 Standard       
+           10016 Joanne Danger                 51 11-OCT-23 17-OCT-23 Standard       
+           10016 Joanne Danger                 51 17-DEC-23 27-DEC-23 Deluxe         
+           10016 Joanne Danger                 51 19-DEC-24 21-DEC-24 Luxury Suite   
+
+15 rows selected. 
+
+SQL> 
+SQL> -- 3.6 Get the following about every member from Wisconsin who has stayed in a luxury suite: guest number, name, age, number of visits (including visits of other room types too), and total number of nights, and average number of nights per visit.
+SQL> 
+SQL> SELECT	g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age, COUNT(confirmation) AS visits, SUM(checkOut - checkIn) AS totalNights, SUM(checkOut - checkIn)/COUNT(confirmation) AS averageNights
+  2  FROM	Guest g, Visit v
+  3  WHERE	g.no = v.guestNo
+  4  	AND status <> 'C'
+  5  	AND g.no IN
+  6  	(
+  7  	SELECT	g.no
+  8  	FROM	Guest g, Member b, Visit v
+  9  	WHERE	g.no = b.no
+ 10  		AND g.no = v.guestNo
+ 11  		AND state = 'WI'
+ 12  		AND roomType = 'Luxury Suite'
+ 13  		AND status <> 'C'
+ 14  	)
+ 15  GROUP BY g.no, firstName, lastName, birthDate
+ 16  ORDER BY g.no;
+
+              NO NAME                         AGE     VISITS TOTALNIGHTS AVERAGENIGHTS
+---------------- --------------------- ---------- ---------- ----------- -------------
+           10001 Anette Larreau                71          3          25    8.33333333
+           10004 Wendell Thomas                38          1           2             2
+           10005 Salena Dimas                  66          2          24            12
+           10009 Chris Bailey                  29          3           6             2
+           10012 Rita Freeman                  56          2           7           3.5
+           10016 Joanne Danger                 51          4          20             5
+
+6 rows selected. 
+
+SQL> 
+SQL> -- 3.7 Get the following about every repeating member (i.e., has visited CPH multiple times) from Wisconsin: guest number, name, age, number of visits, and total number of nights, and average number of nights per visit.
+SQL> 
+SQL> SELECT	g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age, COUNT(confirmation) AS visits, SUM(checkOut - checkIn) AS totalNights, SUM(checkOut - checkIn)/COUNT(confirmation) AS averageNights
+  2  FROM	Guest g, Member b, Visit v
+  3  WHERE	g.no = b.no
+  4  	AND g.no = v.guestNo
+  5  	AND state = 'WI'
+  6  	AND status <> 'C'
+  7  GROUP BY g.no, firstName, lastName, birthDate
+  8  HAVING   COUNT(confirmation)>1
+  9  ORDER BY g.no;
+
+              NO NAME                         AGE     VISITS TOTALNIGHTS AVERAGENIGHTS
+---------------- --------------------- ---------- ---------- ----------- -------------
+           10001 Anette Larreau                71          3          25    8.33333333
+           10005 Salena Dimas                  66          2          24            12
+           10008 Jim Jones                     65          2          15           7.5
+           10009 Chris Bailey                  29          3           6             2
+           10011 Coco Bronson                  49          2          20            10
+           10012 Rita Freeman                  56          2           7           3.5
+           10016 Joanne Danger                 51          4          20             5
+
+7 rows selected. 
+
+SQL> 
+SQL> -- 3.8 Get the following about every repeating member from Wisconsin who has not stayed in a luxury suite yet: guest number, name, age, number of visits, and total number of nights, and average number of nights per visit.
+SQL> 
+SQL> SELECT	g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age, COUNT(confirmation) AS visits, SUM(checkOut - checkIn) AS totalNights, SUM(checkOut - checkIn)/COUNT(confirmation) AS averageNights
+  2  FROM	Guest g, Member b, Visit v
+  3  WHERE	g.no = b.no
+  4  	AND g.no = v.guestNo
+  5  	AND state = 'WI'
+  6  	AND status <> 'C'
+  7  GROUP BY g.no, firstName, lastName, birthDate
+  8  HAVING   COUNT(confirmation)>1
+  9  	MINUS
+ 10  SELECT	g.no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age, COUNT(confirmation) AS visits, SUM(checkOut - checkIn) AS totalNights, SUM(checkOut - checkIn)/COUNT(confirmation) AS averageNights
+ 11  FROM	Guest g, Visit v
+ 12  WHERE	g.no = v.guestNo
+ 13  	AND status <> 'C'
+ 14  	AND g.no IN
+ 15  	(
+ 16  	SELECT	g.no
+ 17  	FROM	Guest g, Member b, Visit v
+ 18  	WHERE	g.no = b.no
+ 19  		AND g.no = v.guestNo
+ 20  		AND state = 'WI'
+ 21  		AND roomType = 'Luxury Suite'
+ 22  		AND status <> 'C'
+ 23  	)
+ 24  GROUP BY g.no, firstName, lastName, birthDate;
+
+              NO NAME                         AGE     VISITS TOTALNIGHTS AVERAGENIGHTS
+---------------- --------------------- ---------- ---------- ----------- -------------
+           10011 Coco Bronson                  49          2          20            10
+           10008 Jim Jones                     65          2          15           7.5
+
+SQL> 
+SQL> -- 3.9 Get the guest number, name, and age of every guest who has stayed in all types of rooms. (Hint: This query involves the Division operation in relational algebra, but is notoriously difficult to write in SQL. Consider using sub-queries. Restate the query as  Find every guest, such that there does not exist a room type that the guest has not stayed in ).
+SQL> 
+SQL> SELECT	no, firstName || ' ' || lastName AS name, FLOOR(MONTHS_BETWEEN(SYSDATE, birthDate)/12) AS age
+  2  FROM	Guest g
+  3  WHERE	NOT EXISTS
+  4  	(
+  5  	SELECT	name
+  6  	FROM	RoomType
+  7  	MINUS
+  8  	SELECT	roomType
+  9  	FROM	Visit v
+ 10  	WHERE	v.guestNo = g.no
+ 11  		AND status <> 'C'
+ 12  	);
+
+              NO NAME                         AGE
+---------------- --------------------- ----------
+           10001 Anette Larreau                71
+           10009 Chris Bailey                  29
+           10016 Joanne Danger                 51
+           10018 Nathanael Tyre                41
+
+SQL> 
+SQL> -- 3.10 Get the confirmation, check in, check out, room type, and room information (room number, wing, and view, if a room has been allocated) of every guest visit.
+SQL> 
+SQL> SELECT	confirmation, checkIn, checkOut, v.roomType, room, wing, roomView
+  2  FROM	Visit v
+  3  	LEFT OUTER JOIN 
+  4  	Room r
+  5  	ON v.room = r.no
+  6  WHERE	status <> 'C'
+  7  ORDER BY confirmation;
+
+CONFIRMATION CHECKIN   CHECKOUT  ROOMTYPE              ROOM W R
+------------ --------- --------- --------------- ---------- - -
+      100001 07-MAR-23 17-MAR-23 Standard               201 E O
+      100003 07-DEC-23 17-DEC-23 Deluxe                 221 C C
+      100004 10-DEC-24 15-DEC-24 Luxury Suite                  
+      100005 10-JAN-23 12-JAN-23 Standard               201 E O
+      100006 12-DEC-23 14-DEC-23 Luxury Suite           241 W O
+      100007 07-DEC-23 17-DEC-23 Deluxe                 221 C C
+      100008 01-OCT-24 15-OCT-24 Luxury Suite                  
+      100010 07-FEB-23 17-FEB-23 Standard               201 E O
+      100012 07-MAR-23 12-MAR-23 Deluxe                 221 C C
+      100014 17-MAR-23 19-MAR-23 Standard               201 E O
+      100015 17-DEC-23 19-DEC-23 Deluxe                 221 C C
+
+CONFIRMATION CHECKIN   CHECKOUT  ROOMTYPE              ROOM W R
+------------ --------- --------- --------------- ---------- - -
+      100016 17-DEC-24 19-DEC-24 Luxury Suite                  
+      100017 10-DEC-23 15-DEC-23 Luxury Suite           243 W O
+      100018 07-MAR-23 17-MAR-23 Standard               202 E G
+      100020 07-DEC-23 17-DEC-23 Deluxe                 222 C C
+      100021 19-APR-23 21-APR-23 Standard               201 E O
+      100022 10-AUG-24 15-AUG-24 Luxury Suite                  
+      100023 12-SEP-24 15-SEP-24 Luxury Suite                  
+      100024 07-SEP-23 17-SEP-23 Deluxe                 221 C C
+      100025 10-DEC-23 15-DEC-23 Luxury Suite           241 W O
+      100026 22-MAR-23 24-MAR-23 Standard               201 E O
+      100027 11-OCT-23 17-OCT-23 Standard               202 E G
+
+CONFIRMATION CHECKIN   CHECKOUT  ROOMTYPE              ROOM W R
+------------ --------- --------- --------------- ---------- - -
+      100028 17-DEC-23 27-DEC-23 Deluxe                 221 C C
+      100029 19-DEC-24 21-DEC-24 Luxury Suite                  
+      100030 02-MAR-23 03-MAR-23 Standard               201 E O
+      100032 02-DEC-23 03-DEC-23 Deluxe                 221 C C
+      100033 12-DEC-23 15-DEC-23 Luxury Suite           243 W O
+
+27 rows selected. 
+
+SQL> 
+SQL> SELECT	confirmation, checkIn, checkOut, v.roomType, room, wing, roomView
+  2  FROM	Visit v, Room r
+  3  WHERE	v.room = r.no
+  4  	AND status <> 'C'
+  5  UNION
+  6  SELECT	confirmation, checkIn, checkOut, roomType, NULL AS room, NULL AS wing, NULL AS roomView
+  7  FROM	Visit v
+  8  WHERE	room IS NULL
+  9  	AND status <> 'C';
+
+CONFIRMATION CHECKIN   CHECKOUT  ROOMTYPE              ROOM W R
+------------ --------- --------- --------------- ---------- - -
+      100001 07-MAR-23 17-MAR-23 Standard               201 E O
+      100003 07-DEC-23 17-DEC-23 Deluxe                 221 C C
+      100005 10-JAN-23 12-JAN-23 Standard               201 E O
+      100006 12-DEC-23 14-DEC-23 Luxury Suite           241 W O
+      100007 07-DEC-23 17-DEC-23 Deluxe                 221 C C
+      100010 07-FEB-23 17-FEB-23 Standard               201 E O
+      100012 07-MAR-23 12-MAR-23 Deluxe                 221 C C
+      100014 17-MAR-23 19-MAR-23 Standard               201 E O
+      100015 17-DEC-23 19-DEC-23 Deluxe                 221 C C
+      100017 10-DEC-23 15-DEC-23 Luxury Suite           243 W O
+      100018 07-MAR-23 17-MAR-23 Standard               202 E G
+
+CONFIRMATION CHECKIN   CHECKOUT  ROOMTYPE              ROOM W R
+------------ --------- --------- --------------- ---------- - -
+      100020 07-DEC-23 17-DEC-23 Deluxe                 222 C C
+      100021 19-APR-23 21-APR-23 Standard               201 E O
+      100024 07-SEP-23 17-SEP-23 Deluxe                 221 C C
+      100025 10-DEC-23 15-DEC-23 Luxury Suite           241 W O
+      100026 22-MAR-23 24-MAR-23 Standard               201 E O
+      100027 11-OCT-23 17-OCT-23 Standard               202 E G
+      100028 17-DEC-23 27-DEC-23 Deluxe                 221 C C
+      100030 02-MAR-23 03-MAR-23 Standard               201 E O
+      100032 02-DEC-23 03-DEC-23 Deluxe                 221 C C
+      100033 12-DEC-23 15-DEC-23 Luxury Suite           243 W O
+      100004 10-DEC-24 15-DEC-24 Luxury Suite                  
+
+CONFIRMATION CHECKIN   CHECKOUT  ROOMTYPE              ROOM W R
+------------ --------- --------- --------------- ---------- - -
+      100008 01-OCT-24 15-OCT-24 Luxury Suite                  
+      100016 17-DEC-24 19-DEC-24 Luxury Suite                  
+      100022 10-AUG-24 15-AUG-24 Luxury Suite                  
+      100023 12-SEP-24 15-SEP-24 Luxury Suite                  
+      100029 19-DEC-24 21-DEC-24 Luxury Suite                  
+
+27 rows selected. 
+

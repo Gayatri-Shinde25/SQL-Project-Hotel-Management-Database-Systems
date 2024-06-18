@@ -1,0 +1,439 @@
+SQL> --Data and Info  Management
+SQL> --Gayatri Shinde
+SQL> --UserName GSSHINDE
+
+SQL> 
+SQL>  -- Query to determine the level of the supervisor
+SQL> CREATE OR REPLACE TRIGGER CheckSupervisionLevel
+  2  BEFORE INSERT ON Employee
+  3  FOR EACH ROW
+  4  DECLARE
+  5      flag	NUMBER(1);
+  6      level	NUMBER(1);
+  7      managerID	Employee.supervisor%TYPE;
+  8  BEGIN
+  9      -- The supervision relationship is hierarchical up to three levels.
+ 10      managerID := :NEW.supervisor;
+ 11      IF managerID IS NULL THEN
+ 12  	RETURN;
+ 13      END IF;
+ 14  
+ 15      SELECT COUNT(*) INTO flag
+ 16      FROM   Employee
+ 17      WHERE  empNo = managerID;
+ 18      IF flag < 1 THEN
+ 19  	RETURN;
+ 20      END IF;
+ 21  
+ 22      level := 1;
+ 23      WHILE level <= 3 AND managerID IS NOT NULL LOOP
+ 24  	SELECT supervisor INTO managerID
+ 25  	FROM   Employee
+ 26  	WHERE  empNo = managerID;
+ 27  	level := level + 1;
+ 28      END LOOP;
+ 29  
+ 30      IF level > 3 THEN
+ 31  	RAISE_APPLICATION_ERROR('-20003', 
+ 32  	'Integrity Constraint Violated: The supervision relationship is hierarchical up to three levels!');
+ 33      END IF;
+ 34  END;
+ 35  /
+
+Trigger CHECKSUPERVISIONLEVEL compiled
+
+SQL> 
+SQL> 
+SQL> SHOW ERROR
+SQL> --SELECT line, text FROM user_source WHERE name = UPPER('SupervisionConstraint');
+SQL> 
+SQL> 
+SQL> -- test the trigger
+SQL> INSERT INTO Department VALUES ('Front Desk', 221, 4149230011, 101, 4147652233, 222);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Department VALUES ('Restaurant', 223, 4149230012, 111, 4148876677, 224);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empNo, firstName, lastName, gender, department, supervisor)
+  2  VALUES (101, 'Adam', 'Baker', 'M', 'Front Desk', 102);
+
+Error starting at line : 55 in command -
+INSERT INTO Employee (empNo, firstName, lastName, gender, department, supervisor)
+VALUES (101, 'Adam', 'Baker', 'M', 'Front Desk', 102)
+Error report -
+ORA-02291: integrity constraint (GSSHINDE.SYS_C00145276) violated - parent key not found
+
+SQL> 
+SQL> 
+SQL> INSERT INTO Employee (empNo, firstName, lastName, gender, department, supervisor)
+  2  VALUES (101, 'Adam', 'Baker', 'M', 'Front Desk', null);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (102, 'Steve', 'Dickens', 'M', 'Front Desk', 101);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (103, 'Alana', 'Carlyle', 'F', 'Front Desk', 102);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (104, 'Bill', 'Lee', 'M', 'Front Desk', 103);
+
+Error starting at line : 68 in command -
+INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+VALUES (104, 'Bill', 'Lee', 'M', 'Front Desk', 103)
+Error at Command Line : 68 Column : 13
+Error report -
+SQL Error: ORA-20003: Integrity Constraint Violated: The supervision relationship is hierarchical up to three levels!
+ORA-06512: at "GSSHINDE.CHECKSUPERVISIONLEVEL", line 28
+ORA-04088: error during execution of trigger 'GSSHINDE.CHECKSUPERVISIONLEVEL'
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (104, 'Bill', 'Lee', 'M', 'Front Desk', 102);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (111, 'Daniel', 'Lincoln', 'M', 'Restaurant', 112);
+
+Error starting at line : 74 in command -
+INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+VALUES (111, 'Daniel', 'Lincoln', 'M', 'Restaurant', 112)
+Error report -
+ORA-02291: integrity constraint (GSSHINDE.SYS_C00145276) violated - parent key not found
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (111, 'Daniel', 'Lincoln', 'M', 'Restaurant', null);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (112, 'Sam', 'Gerbstedt', 'M', 'Restaurant', 111);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (113, 'Lina', 'Liu', 'F', 'Restaurant', 112);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (114, 'Bob', 'Johnstone', 'M', 'Restaurant', 113);
+
+Error starting at line : 86 in command -
+INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+VALUES (114, 'Bob', 'Johnstone', 'M', 'Restaurant', 113)
+Error at Command Line : 86 Column : 13
+Error report -
+SQL Error: ORA-20003: Integrity Constraint Violated: The supervision relationship is hierarchical up to three levels!
+ORA-06512: at "GSSHINDE.CHECKSUPERVISIONLEVEL", line 28
+ORA-04088: error during execution of trigger 'GSSHINDE.CHECKSUPERVISIONLEVEL'
+
+SQL> 
+SQL> INSERT INTO Employee (empno, firstName, lastName, gender, department, supervisor)
+  2  VALUES (114, 'Bob', 'Johnstone', 'M', 'Restaurant', null);
+
+1 row inserted.
+
+SQL> 
+SQL> Select * from Employee;
+
+     EMPNO FIRSTNAME                                          LASTNAME                                           POSITION                                                                                             BIRTHDATE G HIREDATE  DEPARTMENT                                                                                           SUPERVISOR
+---------- -------------------------------------------------- -------------------------------------------------- ---------------------------------------------------------------------------------------------------- --------- - --------- ---------------------------------------------------------------------------------------------------- ----------
+       101 Adam                                               Baker                                                                                                                                                             M           Front Desk                                                                                                     
+       102 Steve                                              Dickens                                                                                                                                                           M           Front Desk                                                                                                  101
+       103 Alana                                              Carlyle                                                                                                                                                           F           Front Desk                                                                                                  102
+       104 Bill                                               Lee                                                                                                                                                               M           Front Desk                                                                                                  102
+       111 Daniel                                             Lincoln                                                                                                                                                           M           Restaurant                                                                                                     
+       112 Sam                                                Gerbstedt                                                                                                                                                         M           Restaurant                                                                                                  111
+       113 Lina                                               Liu                                                                                                                                                               F           Restaurant                                                                                                  112
+       114 Bob                                                Johnstone                                                                                                                                                         M           Restaurant                                                                                                     
+
+8 rows selected. 
+
+SQL> 
+SQL> 
+SQL> -- Calculate total amount spent by the guest during the visit
+SQL> CREATE OR REPLACE FUNCTION calculate_transaction_balance(visit_confirmation IN INT)
+  2  RETURN DECIMAL
+  3  IS
+  4      v_total_amount DECIMAL(10,2) := 0;
+  5  BEGIN
+  6      -- Check if the confirmation number exists in the Visit table
+  7      SELECT COUNT(*)
+  8      INTO v_total_amount
+  9      FROM Visit
+ 10      WHERE confirmation = visit_confirmation;
+ 11  
+ 12      IF v_total_amount = 0 THEN
+ 13          RAISE_APPLICATION_ERROR(-20001, 'Confirmation number does not exist.');
+ 14      END IF;
+ 15  
+ 16      -- Check if transactions exist for the given confirmation number
+ 17      SELECT COALESCE(SUM(CASE WHEN transactionType IN (201, 202) THEN -amount ELSE amount END), 0)
+ 18      INTO v_total_amount
+ 19      FROM Transaction
+ 20      WHERE confirmation = visit_confirmation
+ 21      AND (voidingEmployee IS NULL OR voidingDate IS NULL OR voidingReason IS NULL);
+ 22  
+ 23      RETURN v_total_amount;
+ 24  EXCEPTION
+ 25      WHEN NO_DATA_FOUND THEN
+ 26          RETURN 0; -- Return 0 if no transactions found for the visit
+ 27  END;
+ 28  /
+
+Function CALCULATE_TRANSACTION_BALANCE compiled
+
+SQL> 
+SQL> SHOW ERRORS
+SQL> --SELECT line, text FROM user_source WHERE name = UPPER('Balance');
+SQL> 
+SQL> 
+SQL> -- Use the function in queries
+SQL> INSERT INTO TransactionType
+  2  VALUES (101, 'Room charge posted automatically every night', 'C', 'A');
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO TransactionType
+  2  VALUES (102, 'Restaurant bill signed to room', 'C', 'M');
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO TransactionType
+  2  VALUES (201, 'Credit card payment auto posted at check out', 'D', 'A');
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO TransactionType
+  2  VALUES (202, 'Credit card payment manually entered', 'D', 'M');
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Visit 
+  2  VALUES (100034, '11-OCT-2023', '7-JAN-2024', 'I', 10001, 7832465435671626, 'Standard', 201);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Visit 
+  2  VALUES (100035, '11-OCT-2023', '6-JAN-2024', 'I', 10002, 7832465435672345, 'Standard', 202);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Transaction
+  2  VALUES (1000035, '4-JAN-2024', 95, 'Room charge', 101, 100034, null, null, null, null);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Transaction
+  2  VALUES (1000036, '5-JAN-2024', 15, 'Breakfast', 102, 100034, 113, null, null, null);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Transaction
+  2  VALUES (1000037, '5-JAN-2024', 35, 'Lunch', 102, 100034, 114, 114, '6-JAN-2024', 'Paid cash at restaurant');
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Transaction
+  2  VALUES (1000038, '5-JAN-2024', 95, 'Room charge', 101, 100034, null, null, null, null);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Transaction
+  2  VALUES (1000039, '5-JAN-2024', 95, 'Room charge', 101, 100035, null, null, null, null);
+
+1 row inserted.
+
+SQL> 
+SQL> INSERT INTO Transaction
+  2  VALUES (1000040, '6-JAN-2024', 95, 'Credit card payment', 202, 100035, 103, null, null, null);
+
+1 row inserted.
+
+SQL> 
+SQL> 
+SQL> SELECT calculate_transaction_balance(100001) FROM DUAL;
+
+CALCULATE_TRANSACTION_BALANCE(100001)
+-------------------------------------
+                                    0
+
+SQL> SELECT calculate_transaction_balance(100034) FROM DUAL;
+
+CALCULATE_TRANSACTION_BALANCE(100034)
+-------------------------------------
+                                  205
+
+SQL> SELECT calculate_transaction_balance(100035) FROM DUAL;
+
+CALCULATE_TRANSACTION_BALANCE(100035)
+-------------------------------------
+                                    0
+
+SQL> SELECT calculate_transaction_balance(100036) FROM DUAL;
+
+Error starting at line : 170 in command -
+SELECT calculate_transaction_balance(100036) FROM DUAL
+Error at Command Line : 170 Column : 8
+Error report -
+SQL Error: ORA-20001: Confirmation number does not exist.
+ORA-06512: at "GSSHINDE.CALCULATE_TRANSACTION_BALANCE", line 13
+
+SQL> 
+SQL> SELECT Confirmation, checkIn, checkOut, status, calculate_transaction_balance(confirmation)
+  2  FROM Visit
+  3  WHERE guestNo < 10003;
+
+CONFIRMATION CHECKIN   CHECKOUT  S CALCULATE_TRANSACTION_BALANCE(CONFIRMATION)
+------------ --------- --------- - -------------------------------------------
+      100001 07-MAR-23 17-MAR-23 O                                           0
+      100002 01-OCT-23 07-OCT-23 C                                           0
+      100003 07-DEC-23 17-DEC-23 O                                           0
+      100004 10-DEC-24 15-DEC-24 R                                           0
+      100034 11-OCT-23 07-JAN-24 I                                         205
+      100035 11-OCT-23 06-JAN-24 I                                           0
+
+6 rows selected. 
+
+SQL> 
+SQL> 
+SQL> -- Procedure to check out a guest visit
+SQL> CREATE OR REPLACE PROCEDURE checkout_guest_visit(visit_confirmation IN INT)
+  2  IS
+  3      v_transaction_balance DECIMAL(10,2);
+  4      v_checked_in_status CHAR(1);
+  5      tNo Transaction.transactionNo%type;
+  6  BEGIN
+  7      -- Check if the guest is currently checked in
+  8      SELECT status INTO v_checked_in_status
+  9      FROM Visit
+ 10      WHERE confirmation = visit_confirmation;
+ 11  
+ 12      -- If guest is not currently checked in, exit procedure with message
+ 13      IF v_checked_in_status <> 'I' THEN
+ 14          RAISE_APPLICATION_ERROR(-20004, 'The guest is not currently checked in!');
+ 15          RETURN;
+ 16      ELSE
+ 17  
+ 18          -- Calculate transaction balance for the visit
+ 19          SELECT calculate_transaction_balance(visit_confirmation)
+ 20          INTO v_transaction_balance
+ 21          FROM dual;
+ 22  
+ 23          -- If transaction balance is not zero, post automatic credit card payment
+ 24          IF v_transaction_balance <> 0 THEN
+ 25              select max(transactionNo) + 1 into tNo
+ 26              from Transaction;
+ 27  
+ 28              INSERT INTO Transaction (transactionNo, transactionDate, amount, memo,  transactionType, confirmation)
+ 29              VALUES (tNo, SYSDATE, v_transaction_balance,'Automatic credit card payment', 201, visit_confirmation);
+ 30          END IF;
+ 31  
+ 32          -- Update status of the visit to "O" and check-out date to today's date
+ 33          UPDATE Visit
+ 34          SET status = 'O', checkOut = SYSDATE
+ 35          WHERE confirmation = visit_confirmation;
+ 36  
+ 37      END IF;
+ 38  EXCEPTION
+ 39      WHEN NO_DATA_FOUND THEN
+ 40          RAISE_APPLICATION_ERROR(-20004, 'Confirmation number does not exists!');
+ 41      WHEN OTHERS THEN
+ 42          DBMS_OUTPUT.PUT_LINE('An error occurred: ' || SQLERRM);
+ 43  END;
+ 44  /
+
+Procedure CHECKOUT_GUEST_VISIT compiled
+
+SQL> 
+SQL> SHOW ERROR
+SQL> --SELECT line, text FROM user_source WHERE name = UPPER('CheckOut');
+SQL> 
+SQL> -- execute the procedure
+SQL> EXECUTE checkout_guest_visit(100001);
+
+PL/SQL procedure successfully completed.
+
+SQL> EXECUTE checkout_guest_visit(100034);
+
+PL/SQL procedure successfully completed.
+
+SQL> EXECUTE checkout_guest_visit(100035);
+
+PL/SQL procedure successfully completed.
+
+SQL> EXECUTE checkout_guest_visit(100036);
+
+Error starting at line : 230 in command -
+BEGIN checkout_guest_visit(100036); END;
+Error report -
+ORA-20004: Confirmation number does not exists!
+ORA-06512: at "GSSHINDE.CHECKOUT_GUEST_VISIT", line 40
+ORA-06512: at line 1
+
+SQL> 
+SQL> SELECT Confirmation, checkIn, checkOut, status, calculate_transaction_balance(confirmation)
+  2  FROM Visit
+  3  WHERE guestNo < 10003;
+
+CONFIRMATION CHECKIN   CHECKOUT  S CALCULATE_TRANSACTION_BALANCE(CONFIRMATION)
+------------ --------- --------- - -------------------------------------------
+      100001 07-MAR-23 17-MAR-23 O                                           0
+      100002 01-OCT-23 07-OCT-23 C                                           0
+      100003 07-DEC-23 17-DEC-23 O                                           0
+      100004 10-DEC-24 15-DEC-24 R                                           0
+      100034 11-OCT-23 15-APR-24 O                                           0
+      100035 11-OCT-23 15-APR-24 O                                           0
+
+6 rows selected. 
+
+SQL> 
+SQL> SELECT * FROM Transaction;
+
+TRANSACTIONNO TRANSACTI     AMOUNT MEMO                                                                                                                                                                                                                                                            TRANSACTIONTYPE CONFIRMATION ENTERINGEMPLOYEE VOIDINGEMPLOYEE VOIDINGDA VOIDINGREASON                                                                                                                                                                                                                                                  
+------------- --------- ---------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- --------------- ------------ ---------------- --------------- --------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1000035 04-JAN-24         95 Room charge                                                                                                                                                                                                                                                                 101       100034                                                                                                                                                                                                                                                                                                           
+      1000036 05-JAN-24         15 Breakfast                                                                                                                                                                                                                                                                   102       100034              113                                                                                                                                                                                                                                                                                          
+      1000037 05-JAN-24         35 Lunch                                                                                                                                                                                                                                                                       102       100034              114             114 06-JAN-24 Paid cash at restaurant                                                                                                                                                                                                                                        
+      1000038 05-JAN-24         95 Room charge                                                                                                                                                                                                                                                                 101       100034                                                                                                                                                                                                                                                                                                           
+      1000039 05-JAN-24         95 Room charge                                                                                                                                                                                                                                                                 101       100035                                                                                                                                                                                                                                                                                                           
+      1000040 06-JAN-24         95 Credit card payment                                                                                                                                                                                                                                                         202       100035              103                                                                                                                                                                                                                                                                                          
+      1000041 15-APR-24        205 Automatic credit card payment                                                                                                                                                                                                                                               201       100034                                                                                                                                                                                                                                                                                                           
+
+7 rows selected. 
+
+SQL> 
+SQL> COMMIT;
+
+Commit complete.
+
